@@ -1,0 +1,25 @@
+Keyboard Instruction:
+
+Camera:				|	Avatar:
+					|
+	forward					forward		
+	_____					_____
+	| w | 					| i |	
+____ ___ ____			____ ___ ____	
+| a | s | d |			| j | k | l |
+turn back turn 			turn back turn
+left	  right			left	  right
+
+
+		____ ____
+		| c | v |
+		c: turn in to "Keep Watching"
+		v: turn back to normal camera view
+
+		_____
+		| t |
+		t: "track Camera"
+
+		_____
+		| b |
+		b: change lighting condition -- switch between day light mode and night (spotlight) mode
