@@ -31,6 +31,11 @@ class Object {
     
     //for gravity
     bool hasGravity;
+    enum OBJECT_TYPE { Avatar, Ball, StillObject};
+    
+    //either visibale
+    bool visible;
+
 
     
 public:
@@ -43,11 +48,30 @@ public:
         angularAcceleration = 0;
         
         hasGravity = false;
+        visible = true;
+    }
+    
+    /* virtual class for collision detection*/
+    virtual bool Interact(Object* object) = 0;
+    
+    virtual OBJECT_TYPE GetType() = 0;
+    
+    virtual bool checkCollision(Object* object) = 0;
+    
+    void setVisible(bool vis){
+        visible = vis;
+    }
+    
+    bool getVisible(){
+        return visible;
+    }
+    
+    void setVelocity(vec3 newV){
+        velocity = newV;
     }
     
     /*updates velocity, angularVelocity, position, and orientation depending on acceleration, angularAcceleration, and dt*/
     void Move(float dt) {
-//        printf("animated object\n");
         velocity = velocity + acceleration*dt;
         /* assume ground is y=0 */
         if(touchGround()){
@@ -64,7 +88,6 @@ public:
         }else{
             /* if has gracity, then fall down */
             if(hasGravity){
-                printf("has gravity");
                 velocity = velocity + vec3(0, -0.02, 0)*dt;
             } 
         }
@@ -80,13 +103,18 @@ public:
         bool hasTouchedGround = false;
         float radius = scaling.y;
         float bottomPos = position.y - radius;
-        printf("bottomPos is %f, Y pos is %f, radius is %f \n", bottomPos, position.y, radius);
+//        printf("bottomPos is %f, Y pos is %f, radius is %f \n", bottomPos, position.y, radius);
         if(bottomPos<-0.5){
             hasTouchedGround = true;
         }
         return hasTouchedGround;
     }
     
+    
+//    void accelerate(float dt){
+//        acceleration += dt;
+//    }
+//    
     
     void setGravity(bool newG ){
         hasGravity = newG;
@@ -95,8 +123,6 @@ public:
     bool getGravity(){
         return hasGravity;
     }
-    
-
     
     vec3& GetPosition() {
         return position;
@@ -152,6 +178,10 @@ public:
     
     float GetRoll() {
         return roll;
+    }
+    
+    vec3 GetScale(){
+        return scaling;
     }
     
     //upload vertix attribute
@@ -221,3 +251,120 @@ public:
         thisShader->UploadVP(VP);
     }
 };
+
+
+
+//the avater object of the scene
+class Avatar: public Object{
+public:
+    Avatar(Mesh *m, vec3 position, vec3 scaling, float orientation) :
+        Object(m, position, scaling,orientation){}
+    
+    bool checkCollision(Object* object){
+        float rangeXH = object->GetPosition().x + object->GetScale().x + 1;
+        float rangeXL = object->GetPosition().x - object->GetScale().x - 1;
+        float rangeY = object->GetPosition().y + object->GetScale().y;
+        float rangeZH = object->GetPosition().z + object->GetScale().z +1 ;
+        float rangeZL = object->GetPosition().z - object->GetScale().z - 1;
+        if((GetPosition().x<rangeXH)&&(GetPosition().x>rangeXL)){
+//            if((GetPosition().y<rangeY+1)&&(GetPosition().y>rangeY-1)){
+                if((GetPosition().z<rangeZH)&&(GetPosition().z>rangeZL)){
+                    printf("COLLIDE!!!");
+                    return Interact(object);
+                }
+//            }
+        }
+        return false;
+    }
+    
+    bool Interact(Object* object) {
+        switch (object->GetType()) {
+            /* avatar: both bounce*/
+            case Object::Avatar:
+                printf("Avatar bounce to itself \n");
+                return false;
+                break;
+                
+            /* ball: ball explode*/
+            case Object::Ball:
+                printf("ball explode, collision wave impact the avatar \n");
+                velocity = vec3(0,0,0)-velocity;
+                angularVelocity = -angularVelocity;
+                object->setVisible(false);
+                return false;
+                break;
+                
+            /* still object: bounce back*/
+            case Object::StillObject:
+                printf("hit on an object \n");
+//                velocity = vec3(0,0,0)-velocity;
+                velocity = vec3(0,0,0);
+                printf("velocity z is %f \n", velocity.z);
+                angularVelocity = -angularVelocity;
+                return true;
+                break;
+                
+            default:
+                printf("no type \n");
+                return false;
+                break;
+        }
+        return false;
+
+    }
+    
+    OBJECT_TYPE GetType(){
+        return OBJECT_TYPE::Avatar;
+    }
+};
+
+
+
+//balls that will move during collision
+class Ball : public Object{
+public:
+    Ball(Mesh *m, vec3 position, vec3 scaling, float orientation) :
+        Object(m, position, scaling,orientation){}
+    
+    bool Interact(Object* object) {
+        return false;
+    
+    }
+    
+    OBJECT_TYPE GetType(){
+        return OBJECT_TYPE::Ball;
+    }
+    
+    bool checkCollision(Object* object){
+        return false;
+    }
+    
+    void Explode(){
+        
+    }
+};
+
+
+
+
+//still objects that is fix to the ground
+class StillObject : public Object{
+public:
+    StillObject(Mesh *m, vec3 position, vec3 scaling, float orientation) :
+        Object(m, position, scaling, orientation){}
+    
+    bool Interact(Object* object) {
+        return false;
+        
+        
+    }
+    
+    bool checkCollision(Object* object){
+        return false;
+    }
+    
+    OBJECT_TYPE GetType(){
+        return OBJECT_TYPE::StillObject;
+    }
+};
+

@@ -13,7 +13,7 @@ class Camera {
     
 public:
     Camera() {
-        wEye = vec3(0.0, 0.0, 2.0);
+        wEye = vec3(0.0, 5.0, 2.0);
         wLookat = vec3(0.0, 0.0, 0.0);
         wVup = vec3(0.0, 1.0, 0.0);
         

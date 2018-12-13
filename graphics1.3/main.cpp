@@ -129,18 +129,18 @@ public:
         
         // push objects into the list
         // object configuration: vec3(position), vec3(scaling), float(orientation)
-        avatar = new Object(meshes[0], vec3(0.0, -0.6, 0.0), vec3(0.05, 0.05, 0.05), 0);
+        avatar = new Avatar(meshes[0], vec3(0.0, -0.6, 0.0), vec3(0.05, 0.05, 0.05), 0);
         objects.push_back(avatar);                                                                                  // [0] heli body
-        objects.push_back(new Object(meshes[1], vec3(0.0, 1.5, 0.0), vec3(0.05, 0.05, 0.05), 0));                   // [1] heli rotor
-        objects.push_back(new Object(meshes[2], vec3(128, -1, 0), vec3(1.515, 1.515, 1.515), -60));                 // [2] sky
-        objects.push_back(new Object(meshes[3], vec3(0, -1, 0), vec3(1, 1, 1), -60));                               // [3] ground
-        objects.push_back(new Object(meshes[4], vec3(1.0, -1.0, 0.0), vec3(0.2, 0.2, 0.2), -60.0));                 // [4] bridge
+        objects.push_back(new Avatar(meshes[1], vec3(0.0, 1.5, 0.0), vec3(0.05, 0.05, 0.05), 0));                   // [1] heli rotor
+        objects.push_back(new StillObject(meshes[2], vec3(128, -1, 0), vec3(1.515, 1.515, 1.515), -60));                 // [2] sky
+        objects.push_back(new StillObject(meshes[3], vec3(0, -1, 0), vec3(1, 1, 1), -60));                               // [3] ground
+        objects.push_back(new StillObject(meshes[4], vec3(0.0, -1.0, -8), vec3(0.2, 0.2, 0.2), -60.0));                 // [4] bridge
         //add random rocks
         for (int i=0; i<20; i++){                                                                                   // [5] rocks1
             int value1 = rand() % 50;
             int value2 = rand() % 50;
             int value3 = rand() % 10;
-            objects.push_back(new Object(meshes[5], vec3(value1, -1.0, value2), vec3(0.001*value3, 0.001*value3, 0.001*value3), 3*value2));
+            objects.push_back(new StillObject(meshes[5], vec3(value1, -1.0, value2), vec3(0.001*value3, 0.001*value3, 0.001*value3), 3*value2));
         }
         
         //add random mars
@@ -148,7 +148,7 @@ public:
             int value1 = rand() % 40;
             int value2 = rand() % 40;
             int value3 = rand() % 40;
-            Object* curObjet = new Object(meshes[6], vec3(value1, 5.0, value2), vec3(0.01*value3, 0.01*value3, 0.01*value3), 3*value2);
+            Object* curObjet = new Ball(meshes[6], vec3(value1, value3, value2), vec3(0.01*value3, 0.01*value3, 0.01*value3), 3*value2);
             curObjet->setGravity(true);
             objects.push_back(curObjet);
 //            objects.push_back(new Object(meshes[6], vec3(value1, 5.0, value2), vec3(0.01*value3, 0.01*value3, 0.01*value3), 3*value2));
@@ -159,17 +159,13 @@ public:
             int value1 = rand() % 50;
             int value2 = rand() % 50;
             int value3 = rand() % 10;
-            objects.push_back(new Object(meshes[7], vec3(value1, -1.0, value2), vec3(0.001*value3, 0.001*value3, 0.001*value3), 3*value2));
+            objects.push_back(new StillObject(meshes[7], vec3(value1, -1.0, value2), vec3(0.001*value3, 0.001*value3, 0.001*value3), 3*value2));
         }
     }
     
     
     //draw objects
     void Draw() {
-//        drawSnow
-//        drawScene();
-//
-//
         //detect light specified
         if(natureLighting){
             light = natureLight;
@@ -190,6 +186,7 @@ public:
         vec3 avatarPosition = avatar->GetPosition();
         vec3 rotorPosition = vec3(avatarPosition.x, avatarPosition.y+1.5, avatarPosition.z);
         avatar->setGravity(true);
+//        avatar->setVelocity(vec3(0,0, -0.1));
         
         //draw every object
         for(int i = 0; i < objects.size(); i++){
@@ -198,24 +195,21 @@ public:
                 objects[i]->SetPosition(rotorPosition);
                 objects[i]->Rotate();
             }
-            objects[i]->Draw();
-            
-//            if(i==0){
-//                printf("heli body at %f %f %f \n", objects[i]->GetPosition().x,objects[i]->GetPosition().y, objects[i]->GetPosition().y );
-//            }
-
-            //draw shadow excluding for the sky and the ground
-            if (!(i == 2 || i == 3)){
-                objects[i]->DrawShadow(shadowShader);
+            if(objects[i]->getVisible()){
+               objects[i]->Draw();
+                
+                if (!(i == 2 || i == 3)){
+                    objects[i]->DrawShadow(shadowShader);
+                }
             }
+  
         }
     }
     
     
-    
-    
     // a series of keyboard control for the heli and the environment
     void Move(float dt) {
+        bool stop = false;
         dt *= 5; // speed up
         vec3 curPosistion = avatar->GetPosition();
         float newO = avatar->GetOrientation();
@@ -225,10 +219,20 @@ public:
             objects[i]->Move(dt);
         }
         
+        /*check intersection*/
+        for(int i = 0; i < objects.size(); i++){
+            /*not sky or ground*/
+            if (i>3){
+                if(avatar->checkCollision(objects[i])){
+                    stop = true;
+                }
+
+            }
             
-            
+        }
+    
         //forward
-        if(keyboardState['i']){
+        if( (stop==false) && (keyboardState['i'])){
             newO =((newO-90)/180)*M_PI;
             curPosistion.x = curPosistion.x - dt*cos(newO);
             curPosistion.z = curPosistion.z - dt*sin(newO);
@@ -247,6 +251,7 @@ public:
                 camera.updateEye(3);
             }
         }
+        
         //turn left
         if(keyboardState['j']){
             avatar->SetOrientation(newO+1);
