@@ -71,7 +71,7 @@ public:
     
     void Initialize() {
         //initialize snow
-        initSnow();
+//        initSnow();
         
         meshShader = new MeshShader();
         infShader = new InfiniteQuadShader();
@@ -142,12 +142,17 @@ public:
             int value3 = rand() % 10;
             objects.push_back(new Object(meshes[5], vec3(value1, -1.0, value2), vec3(0.001*value3, 0.001*value3, 0.001*value3), 3*value2));
         }
+        
         //add random mars
         for (int i=0; i<20; i++){                                                                                   // [6] mars
             int value1 = rand() % 40;
             int value2 = rand() % 40;
             int value3 = rand() % 40;
-            objects.push_back(new Object(meshes[6], vec3(value1, 5.0, value2), vec3(0.01*value3, 0.01*value3, 0.01*value3), 3*value2));
+            Object* curObjet = new Object(meshes[6], vec3(value1, 5.0, value2), vec3(0.01*value3, 0.01*value3, 0.01*value3), 3*value2);
+            curObjet->setGravity(true);
+            objects.push_back(curObjet);
+//            objects.push_back(new Object(meshes[6], vec3(value1, 5.0, value2), vec3(0.01*value3, 0.01*value3, 0.01*value3), 3*value2));
+            
         }
         //add random rocks v2
         for (int i=0; i<20; i++){                                                                                   // [5] rocks1
@@ -161,43 +166,52 @@ public:
     
     //draw objects
     void Draw() {
-        //drawSnow
-        drawScene();
+//        drawSnow
+//        drawScene();
+//
+//
+        //detect light specified
+        if(natureLighting){
+            light = natureLight;
+        }
+        else{
+            light = spotlight;
+            vec3 eye = avatar->GetPosition();
+            light.SetPointLightSource(eye);
+        }
         
-//        printf("draw snow scene done \n");
-//        //detect light specified
-//        if(natureLighting){
-//            light = natureLight;
-//        }
-//        else{
-//            light = spotlight;
-//            vec3 eye = avatar->GetPosition();
-//            light.SetPointLightSource(eye);
-//        }
-//        
-//        //draw ground
+        //draw ground
+        objects[2]->Draw();
         objects[3]->Draw();
         
-//        //if in spotlight environment, attach the light to the heli
-//        vec3 spot = avatar->GetPosition();
-//        spotlight.SetPointLightSource(spot);
-//        vec3 avatarPosition = avatar->GetPosition();
-//        vec3 rotorPosition = vec3(avatarPosition.x, avatarPosition.y+1.5, avatarPosition.z);
-//        
-//        //draw every object
-//        for(int i = 0; i < objects.size(); i++){
-//            // heli rotor animated
-//            if(i == 1){
-//                objects[i]->SetPosition(rotorPosition);
-//                objects[i]->Rotate();
+        //if in spotlight environment, attach the light to the heli
+        vec3 spot = avatar->GetPosition();
+        spotlight.SetPointLightSource(spot);
+        vec3 avatarPosition = avatar->GetPosition();
+        vec3 rotorPosition = vec3(avatarPosition.x, avatarPosition.y+1.5, avatarPosition.z);
+        avatar->setGravity(true);
+        
+        //draw every object
+        for(int i = 0; i < objects.size(); i++){
+            // heli rotor animated
+            if(i == 1){
+                objects[i]->SetPosition(rotorPosition);
+                objects[i]->Rotate();
+            }
+            objects[i]->Draw();
+            
+//            if(i==0){
+//                printf("heli body at %f %f %f \n", objects[i]->GetPosition().x,objects[i]->GetPosition().y, objects[i]->GetPosition().y );
 //            }
-//            objects[i]->Draw();
-//            //draw shadow excluding for the sky and the ground
-//            if (!(i == 2 || i == 3)){
-//                objects[i]->DrawShadow(shadowShader);
-//            }
-//        }
+
+            //draw shadow excluding for the sky and the ground
+            if (!(i == 2 || i == 3)){
+                objects[i]->DrawShadow(shadowShader);
+            }
+        }
     }
+    
+    
     
     
     // a series of keyboard control for the heli and the environment
@@ -206,6 +220,13 @@ public:
         vec3 curPosistion = avatar->GetPosition();
         float newO = avatar->GetOrientation();
         float av = 0;
+        
+        for(int i = 0; i < objects.size(); i++){
+            objects[i]->Move(dt);
+        }
+        
+            
+            
         //forward
         if(keyboardState['i']){
             newO =((newO-90)/180)*M_PI;
@@ -316,9 +337,19 @@ void onKeyboardUp(unsigned char key, int x, int y) {
 }
 
 //resize the window
-void onReshape(int winWidth, int winHeight) {
-    camera.SetAspectRatio((float)winWidth / winHeight);
-    glViewport(0, 0, winWidth, winHeight);
+void onReshape(int w, int h) {
+    camera.SetAspectRatio((float)w / h);
+//    glViewport(0, 0, winWidth, winHeight);
+    if (h == 0) h = 1;
+    
+    glViewport(0, 0, w, h);
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    
+    gluPerspective(45, (float) w / (float) h, .1, 200);
+    
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 }
 
 //get elapsed time
@@ -336,14 +367,62 @@ void onIdle( ) {
     glutPostRedisplay();
 }
 
+float xRotated = 90.0, yRotated = 0.0, zRotated = 0.0;
 
+//------------------------------  reshapeFunc  ---------------------------------
+
+void reshapeFunc (int x, int y)
+{
+    glMatrixMode (GL_PROJECTION);
+    glLoadIdentity();
+    
+    gluPerspective (40.0, (GLdouble)x / (GLdouble)y, 0.5, 20.0);
+    glMatrixMode   (GL_MODELVIEW);
+    glViewport     (0, 0, x, y);
+}
+
+//------------------------------  Draw_Spheres   -------------------------------
+
+void Draw_Spheres (void)
+{
+    glMatrixMode   (GL_MODELVIEW);
+    glClear        (GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glLoadIdentity ();
+    glTranslatef    (0.0, 0.0, -15.0);
+    
+    glColor3f (0.8, 0.2, 0.1);              // Red ball displaced to left.
+    glPushMatrix ();
+    glTranslatef    (-1.5, 0.0, 0.0);
+    glRotatef       (60.0, 1,0,0);
+    glRotatef       (zRotated*2.0, 0,0,1);   // Red ball rotates at twice the rate of blue ball.
+    glutSolidSphere (1.0, 20, 50);
+    glPopMatrix ();
+    
+    glColor3f (0.1, 0.2, 0.8);              // Blue ball displaced to right.
+    glPushMatrix ();
+    glTranslatef    (1.5, 0.0, 0.0);
+    glRotatef       (60.0, 1,0,0);
+    glRotatef       (zRotated, 0,0,1);
+    glutSolidSphere (1.0, 20, 50);
+    glPopMatrix ();
+    
+    glutSwapBuffers();
+}
+
+//--------------------------------  idleFunc  ----------------------------------
+
+void idleFunc (void)
+{
+    zRotated += 0.3;
+    glutPostRedisplay();
+}
 
 int main(int argc, char * argv[]) {
     glutInit(&argc, argv);
     glutInitWindowSize(windowWidth, windowHeight);
-    glutInitWindowPosition(50, 50);
-    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_3_2_CORE_PROFILE);
-    glutCreateWindow("Liwei and Heidi's Masterpiece");
+//    glutInitWindowPosition(50, 50);
+    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH | GLUT_3_2_CORE_PROFILE );
+    glutCreateWindow("Hey Game");
     glGetIntegerv(GL_MAJOR_VERSION, &majorVersion);
     glGetIntegerv(GL_MINOR_VERSION, &minorVersion);
     
@@ -354,6 +433,8 @@ int main(int argc, char * argv[]) {
     glutKeyboardFunc(onKeyboard);
     glutKeyboardUpFunc(onKeyboardUp);
     glutReshapeFunc(onReshape);
+    
+
     
     glutMainLoop();
     onExit();

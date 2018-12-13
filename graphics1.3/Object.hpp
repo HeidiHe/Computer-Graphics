@@ -23,11 +23,80 @@ class Object {
     float roll=0;
     float pitch=0;
     
+    //for game & animation
+    protected: vec3 velocity;
+    protected: vec3 acceleration;
+    protected: float angularVelocity;
+    protected: float angularAcceleration;
+    
+    //for gravity
+    bool hasGravity;
+
+    
 public:
     Object(Mesh *m, vec3 position = vec3(0.0, 0.0, 0.0), vec3 scaling = vec3(1.0, 1.0, 1.0), float orientation = 0.0) : position(position), scaling(scaling), orientation(orientation) {
         shader = m->GetShader();
         mesh = m;
+        velocity = vec3(0,0,0);
+        acceleration = vec3(0,0,0);
+        angularVelocity = 0;
+        angularAcceleration = 0;
+        
+        hasGravity = false;
     }
+    
+    /*updates velocity, angularVelocity, position, and orientation depending on acceleration, angularAcceleration, and dt*/
+    void Move(float dt) {
+//        printf("animated object\n");
+        velocity = velocity + acceleration*dt;
+        /* assume ground is y=0 */
+        if(touchGround()){
+            
+            float square = pow(velocity.y,2);
+            float squareroot = sqrt(square);
+            /*implement energy lost*/
+            if(squareroot>0.05){
+                velocity.y = squareroot-0.05;
+            }else{
+                velocity.y=0;
+            }
+            
+        }else{
+            /* if has gracity, then fall down */
+            if(hasGravity){
+                printf("has gravity");
+                velocity = velocity + vec3(0, -0.02, 0)*dt;
+            } 
+        }
+        
+        angularVelocity += angularAcceleration*dt;
+        
+        position = position + velocity*dt;
+        orientation += angularVelocity*dt;
+    }
+    
+    /*detect whether has touched ground*/
+    bool touchGround(){
+        bool hasTouchedGround = false;
+        float radius = scaling.y;
+        float bottomPos = position.y - radius;
+        printf("bottomPos is %f, Y pos is %f, radius is %f \n", bottomPos, position.y, radius);
+        if(bottomPos<-0.5){
+            hasTouchedGround = true;
+        }
+        return hasTouchedGround;
+    }
+    
+    
+    void setGravity(bool newG ){
+        hasGravity = newG;
+    }
+    
+    bool getGravity(){
+        return hasGravity;
+    }
+    
+
     
     vec3& GetPosition() {
         return position;

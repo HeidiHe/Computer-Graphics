@@ -37,9 +37,14 @@ void initParticles(int i) {
     par_sys[i].life = 1.0;
     par_sys[i].fade = float(rand()%100)/1000.0f+0.003f;
     
-    par_sys[i].xpos = (float) (rand() % 21) - 10;
-    par_sys[i].ypos = 10.0;
-    par_sys[i].zpos = (float) (rand() % 21) - 10;
+//    par_sys[i].xpos = (float) ((rand() % 21) - 10);
+//    par_sys[i].ypos = 1.0;
+//    par_sys[i].zpos = (float) (rand() % 21) - 10;
+    par_sys[i].xpos = (float) ((rand() % 21) - 10)/10;
+    par_sys[i].ypos = -0.5;
+    par_sys[i].zpos = -(float) ((rand() % 21) - 10)/10;
+    
+    
     
     par_sys[i].red = 0.5;
     par_sys[i].green = 0.5;
@@ -96,7 +101,8 @@ void drawSnow() {
             glColor3f(1.0, 1.0, 1.0);
             glPushMatrix();
             glTranslatef(x, y, z);
-            glutSolidSphere(0.2, 16, 16);
+//            glutSolidSphere(0.2, 16, 16);
+            glutSolidSphere(5, 16, 16);
             glPopMatrix();
             
             // Update values
@@ -117,6 +123,8 @@ void drawSnow() {
                 }
                 par_sys[loop].life = -1.0;
             }
+            
+            printf("particle at %f %f %f \n", par_sys[loop].xpos, par_sys[loop].ypos, par_sys[loop].zpos );
             
             //Revive
             if (par_sys[loop].life < 0.0) {

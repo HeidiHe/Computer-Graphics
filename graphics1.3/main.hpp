@@ -11,7 +11,9 @@
 #include <OpenGL/gl3.h>
 #include <OpenGL/glu.h>
 
-const unsigned int windowWidth = 800, windowHeight = 600;
+#define PI 3.1415
+
+const unsigned int windowWidth = 640, windowHeight = 480;
 int majorVersion = 3, minorVersion = 0;
 bool keyboardState[256];
 
